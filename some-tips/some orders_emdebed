@@ -1,0 +1,79 @@
+mount -t nfs -o nolock 192.168.1.19:/nfsroot/DM814x/target/filesys  /mnt/card/
+
+svn copy /home/afa/work/IPNCRDK/Source/ti_tools/ipnc_psp_arago/u-boot svn://192.168.1.2/u-boot/branches/u-boot-2u -m "vpr8000_1GB_K4B2G1646Q_BCK0"
+
+svn copy /home/afa/work/IPNCRDK/Source/ipnc_rdk svn://192.168.1.2/ipnc_rdk/branches/ipnc_rdk_HS-V7 -m "HS_V7"
+
+svn://192.168.1.2/mpr_searcher/trunk
+
+svn://192.168.1.2/ipnc_rdk/branches/ipnc_rdk_HS-V7
+
+svn copy /home/afa/work/IPNCRDK/Source/gIPNC svn://192.168.1.2/gIPNC/branches/gIPNC_HS_V7
+
+svn copy /home/afa/work/IPNCRDK/Source/gIPNC_en svn://192.168.1.2/gIPNC/branches/gIPNC_en_HS_V7
+
+V7 GoDB前端
+
+中文：
+svn://192.168.1.2/gIPNC/branches/gIPNC_HS_V7
+
+英文：
+svn://192.168.1.2/gIPNC/branches/gIPNC_en_HS_V7
+
+
+nfs 挂在失败，解决办法
+1、启动端口映射服务，可以执行命令：sudo service rpbind restart
+2、启动nfs服务,运行：sudo service nfs-kernel-server restart  
+
+
+tftp 加载失败
+1、检测vpr与tftp服务器（即PC上的Linu系统）的网络是不是通的，可以通过 ping xxx.xxx.xxx.xxx命令来检测
+2、检查tftpd-hpa服务器是否有启动运行。netstatus -a | grep 'tftp'查看，然后可以执行 sudo service tftpd-hpa restart
+
+
+ubifs加载失败，解决办法
+1、需要擦除整块nand flash,在TI8148_IPNC#终端下，运行nand scrub命令，即可擦除整块nand flash
+2、重新烧写uboot、uImage、ubifs.bin文件,请按照相关文档进行固件烧写
+
+
+STM32JLINK配置，project configuration
+1、target interface 选择SWD
+2、CPU ，device选择ST STM32F103RB
+3、其他默认就行
+
+制作SD卡启动时，区分是/dev/mmcblk0或者/dev/sdb对应修改mksd-ti81xx.sh文件
+
+
+
+virtualbox 普通用户不能操作共享文件夹，如：sf_share，是由于对应的普通用afa，
+没有属于“VirtualBox Guest Additions installer”所创建的用户组vboxsf之中.
+可以执行下面命令：
+sudo adduser afa vboxsf
+
+
+烧写nand flash更新固件时，推荐烧写对应部分的时候，擦除对应的分区的部分，
+一般：分为uboot、内核、文件系统、保留区四个分区，如果更新内核和文件系统，
+强烈推荐使用擦除内核和文件系统的对应的整个分区，否则启动文件系统启动的时候，容易报错
+ps（jffs2文件系统一般用hamming code,ubifs常用BCH8）
+
+
+DDR3数据线上不用上拉电阻，控制线也建议不用接电阻。接了电阻可能会对DDR3高频率运行或者大数据拷贝造成意想不到的错误
+
+make:警告：检测到时钟错误。您的创建可能是不完整的
+这个问题的原因，主要是文件的访问时间与修改时间，在当前的linux系统时间之后。解决方法如下：
+运行以下命令
+find . -type f -exec touch {} \;
+即，更新所有的文件访问时间与修改时间为当前系统时间。
+然后make一下，解决。
+
+
+ubifs 镜像制作的过程中，在ubi.cfg文件中：如下：
+[ubifs]
+mode=ubi
+image=./recovery.img
+vol_id=0
+vol_size=45MiB #实际有53M，但是在这里最好预留5M空间保留给系统用，否则挂载的时候会出错
+vol_type=static
+vol_name=recovery
+vol_alignment=1
+vol_flags=autoresize
