@@ -1,0 +1,169 @@
+下面是自动挂载U盘,SD卡，硬盘代码：
+参考链接1：
+
+http://www.bubuko.com/infodetail-750170.html
+
+================================================================================
+目的：使U盘和sd卡在linux系统中进行插入和拔除时能自动挂载和卸载，不需要手动mount和umount
+echo /sbin/mdev > /proc/sys/kernel/hotplug
+2、在/etc下的mdev.conf文件中加入(如果没有这个文件，则新建一个)
+sd[a-z][0-9]      0:0 666 @(/etc/hotplug/insert.sh $MDEV $SUBSYSTEM)
+sd[a-z]           0:0 666 $(/etc/hotplug/remove.sh $MDEV $SUBSYSTEM)
+ub[a-z][0-9]      0:0 666 @(/etc/hotplug/insert.sh $MDEV $SUBSYSTEM)
+ub[a-z]           0:0 666 $(/etc/hotplug/remove.sh $MDEV $SUBSYSTEM)
+mmcblk[0-9]p[0-9] 0:0 666 @(/etc/hotplug/insert.sh $MDEV $SUBSYSTEM)
+mmcblk[0-9]       0:0 666 $(/etc/hotplug/remove.sh $MDEV $SUBSYSTEM)
+3、在/etc下建立hotplug文件夹，并在该文件夹下建立两个文件
+
+insert.sh:
+if [ -n "$1" ]; then
+  if [ -b /dev/$1 ]; then
+    if [ ! -d /media ]; then
+      mkdir -p /media
+    fi
+    if [ ! -d /media/$1 ]; then
+      mkdir -p /media/$1
+    fi
+      mount /dev/$1 /media/$1
+    if [ $? -ne 0 ]; then
+      rm -rf /media/$1
+    fi
+  fi
+fi
+
+remove.sh:
+MOUNTS=$(mount | grep $1 | cut -d' ' -f3)
+umount $MOUNTS
+rm -rf $MOUNTS
+
+        这样在插入U盘或者sd卡使，系统就会在根目录下生成media目录，并将U盘或SD卡挂载在这个目录下。这些步骤也可以在制作文件系统时执行，这样linux系统就能永久自带这个自动挂载的功能。
+
+注：使用上述方法需要如下所示在busybox配置中选择支持mdev。
+
+
+================================================================================
+
+
+参考2：
+http://www.upan.cc/boot/linux/2013/youpan_2798.html
+
+===============================================================================
+Linux的嵌入式系统中我们经常用到U盘、SD卡的挂载，而每次都手动挂载或卸载非常麻烦，我们可以采取以下方法实现自动挂载或卸载U盘、SD卡 这就要用到mdev了 其具体操作如下： 1、
+
+　　
+在 Linux的嵌入式系统中我们经常用到U盘、SD卡的挂载，而每次都手动挂载或卸载非常麻烦，我们可以采取以下方法实现自动挂载或卸载U盘、SD卡
+
+这就要用到mdev了
+ 
+
+其具体操作如下：
+
+1、首先在/etc/init.d/rsC中加入以下语句
+  U盘之家
+echo /sbin/mdev > /proc/sys/kernel/hotplug  
+
+2、在/etc/下简历medv.conf的文件，包含以下内容
+sd[a-z][0-9]      0:0 666        @(/etc/hotplug/insert.sh $MDEV $SUBSYSTEM)
+sd[a-z]           0:0 666        $(/etc/hotplug/remove.sh $MDEV $SUBSYSTEM)
+ub[a-z][0-9]      0:0 666        @(/etc/hotplug/insert.sh $MDEV $SUBSYSTEM)
+ub[a-z]           0:0 666        $(/etc/hotplug/remove.sh $MDEV $SUBSYSTEM)
+mmcblk[0-9]p[0-9] 0:0 666        @(/etc/hotplug/insert.sh $MDEV $SUBSYSTEM)
+mmcblk[0-9]       0:0 666        $(/etc/hotplug/remove.sh $MDEV $SUBSYSTEM)  
+
+3、在/etc/下建立以下文件夹hotplug,并在hotplug目录下建立以下文件，包含以下内容
+
+insert.sh:
+if [ -n "$1" ] ; then
+    if [ -b /dev/$1 ]; then
+
+        if [ ! -d /media ]; then
+            mkdir -p /media
+        fi
+
+        if [ ! -d /media/$1 ]; then
+            mkdir -p /media/$1
+        fi
+             mount /dev/$1 /media/$1
+if [ $? -ne 0 ]; then
+    rm -rf /media/$1
+
+        fi
+
+    fi
+fi  
+
+
+remove.sh: 优盘之家
+MOUNTS=$(mount | grep $1 | cut -d' ' -f3)
+umount $MOUNTS
+rm -rf $MOUNTS 优盘之家 
+
+特别提醒：上面的代码在实际使用中可以直接复制，但注意换行符
+
+插入U盘、SD等设备，即可在根目录的/media目录下建立相应的文件夹，挂载对用的磁盘文件
+
+而其原理是：
+
+mdev是busybox自带的一个简化版的udev，适合于嵌入式的应用场合。其具有使用简单的特点。它的作用，就是在系统启动和热插拔或者动态加载驱动程序时，自动产生驱动程序所需的节点文件。在以busybox为基础构建嵌入式linux的根文件系统时，使用它是最优的选择。
+
+mdev的使用在busybox中的mdev.txt文档已经将得很详细了。但作为例子，我简单讲讲我的使用过程：
+
+（1）在编译时加上对mdev的支持：
+    Linux System Utilities  --->             
+                           mdev     
+
+          
+   Support /etc/mdev.conf         
+   Support command execution at device addition/removal
+
+（2）在启动时加上使用mdev的命令：
+我在自己创建的根文件系统（nfs）中的/linuxrc文件中添加了如下指令：
+#挂载/sys为sysfs文件系统
+ 
+    echo "----------mount /sys as sysfs"
+    /bin/mount -t tmpfs mdev /dev
+    /bin/mount -t sysfs sysfs /sys
+    echo "----------Starting mdev......"
+    /bin/echo /sbin/mdev > /proc/sys/kernel/hotplug
+    mdev -s  
+
+注意：是/bin/echo /sbin/mdev > /proc/sys/kernel/hotplug，并非/bin/echo /bin/mdev > /proc/sys/kernel/hotplug。
+ 
+（3）在你的驱动中加上对类设备接口的支持。
+  在驱动程序的初始化函数中，使用下述的类似语句，就能在类设备目录下添加包含设备号的名为“dev”的属性文件。并通过mdev
+
+在/dev目录下产生gpio_dev0的设备节点文件。
+  my_class = class_create(THIS_MODULE, "gpio_class");
+  if(IS_ERR(my_class)) {
+    printk("Err: failed in creating class./n");
+    return -1;
+  }  
+
+  class_device_create(my_class, MKDEV(gpio_major_number, 0), NULL, "gpio_dev%d" ,0);
+  在驱动程序的清除程序段，加入以下语句，以完成清除工作。
+  class_device_destroy(my_class, MKDEV(gpio_major_number, 0));
+  class_destroy(my_class);
+  需要的头文件是linux/device.h，因此程序的开始应加入下句
+  #include
+  另外，my_class是class类型的结构体指针，要在程序开始时声明成全局变量。
+  struct class *my_class;
+  上述程序中的gpio_major_number是设备的主节点号。可以换成需要的节点号。gpio_dev是最终生成的设备节点文件的名子。%d是用于以相同设备自动编号的。gpio_class是建立的class的名称，当驱动程序加载后，可以在/sys/class的目录下看到它。上述语句也不一定要在初始化和清除阶段使用，可以根据需要在其它地方使用。
+
+（4）至于/etc/mdev.conf文件，可有可无，不影响使用，只是添加了些功能。 优盘之家 
+
+执行mdev -s：
+
+以‘-s’为参数调用位于/sbin目录写的mdev（其实是个链接，作用是传递参数给/bin目录下的busybox程序并调用它），mdev扫描 /sys/class 和/sys/block中所有的类设备目录，如果在目录中含有名为“dev”的文件，且文件中包含的是设备号，则mdev就利用这些信息为这个设备在/dev下创建设备节点文件。一般只在启动时才执行一次 “mdev -s”。
+
+热插拔事件：
+
+由于启动时运行了命令：echo /sbin/mdev > /proc/sys/kernel/hotplug ，那么当有热插拔事件产生时，内核就会调用位于/sbin目录的mdev。这时mdev通过环境变量中的 ACTION 和DEVPATH，（这两个变量是系统自带的）来确定此次热插拔事件的动作以及影响了/sys中的那个目录。接着会看看这个目录中是否有“dev”的属性文件，如果有就利用这些信息为这个设备在/dev 下创建设备节点文件。
+
+===============================================================================
+
+
+
+
+
+
+
