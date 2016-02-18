@@ -1,0 +1,16 @@
+
+======================================
+linux下为：
+
+long long a =3455;
+
+printf("%lld %lld %lld",a,a,a);
+unsigned long long b;
+printf("%llu \n",b); 
+
+windows下为：
+
+ 
+
+printf("%I64d %I64d %I64d",a,a,a);
+==================================
