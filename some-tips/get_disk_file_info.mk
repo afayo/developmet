@@ -224,6 +224,7 @@ void   main()
 	
 }
 
+#获取的大小和用busybox自带的df -h /xxx/xxx 获取的一样大小
 
 参考链接：
 http://blog.163.com/qimo601@126/blog/static/158220932013921758707/
