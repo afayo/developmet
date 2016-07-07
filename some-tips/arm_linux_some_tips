@@ -1,0 +1,413 @@
+# gffx
+1.  加载Active X控件失败时，可以尝试升级IE版本，推荐IE10.0或者更高版本，如果跟新问IE版本后，仍然不行，那么可以右键以管理员身份运行IE
+    配置internet 选项中的active X控件。
+
+2.  修改
+
+# install atom pdf
+工作需要经常写技术文档，无奈Word插入代码并不好用，后染上Markdown无法自拔！但又不能要求别人使用Markdown，故目标要将其转换为国际通用的pdf文档，本文将介绍如何使用Atom编辑Markdown文档并将其转换为pdf。
+
+Atom使用说明
+
+综合评估基于Windows的编辑器中，Atom表现更优秀，Atom是GitHub推出的一款开源编辑器，其强大的插件系统是其最大的特色，比如我们这里要用到的MD文档转PDF就是基于Atom的插件完成。
+
+Atom并不仅限于作为md文档的编辑器，它同大多数编辑器一样，可以作为其它编程语言使用的。
+
+
+下载安装
+
+前往Atom官网：https://atom.io/ 即可下载最新版
+
+Atom的安装非常简单，双击下载的应用程序即可完成安装，其应用程序默认安装在：C:\Users\yourname\AppData\Local\atom中，而其插件配置目录在：C:\Users\yourname\.atom中，每次使用只需要点击快捷方式即可。
+
+使用Atom
+
+我们为了写作md文档，所以只需用Atom打开一个md文档，或者新建一个md文档，就可以按照md格式写作了。使用ctrl+shift+M可以预览文档在html中的表现。
+
+安装插件
+
+根据我们实际需要，仅需安装md转pdf的插件（markdown-themeable-pdf）即可，这里我们推荐一款有趣的插件：activate-power-mode，电脑配置足够强大的话，可以尝试颤抖的力量（https://9turn.com/xuan-ku-de-atomcha-jian-activate-power-mode/）。
+
+Atom的插件是可以使用apm命令来进行在线安装，实际因为一些原因，我们只能使用npm进行安装，所以我们需要先安装nodejs
+
+安装NodeJS
+
+前往NodeJS官网下载：https://nodejs.org/en/
+
+安装完成之后也是因为一些原因，需要将npm源改为国内淘宝源，方法如下：
+
+npm config set registry http://registry.npm.taobao.org/
+安装md转pdf的插件
+
+前往GitHub下载该插件的压缩包：https://github.com/cakebake/markdown-themeable-pdf
+
+将压缩包解压至目录C:\Users\yourname\.atom\
+
+用管理员方式打开Windows的命令行提示符，进入插件目录
+
+cd C:\Users\yourname\.atom\packages\markdown-themeable-pdf-master
+输入npm install，等待安装完成，用Atom打开md文档，右击文档任意处，选择Markdown to PDF，等待片刻完成转换，如下图：
+
+![md2pdf](D:\work\MarkDown\md2pdf.png)
+
+转换后的pdf完美表现
+
+# jffs2文件系统错误处理
+1. 错误一：jffs2_scan_dirent_node(): Name CRC failed on node at 0x060e8fd0: Read 0xe1973445, calculated 0xfd9c886d  
+    解决办法：此问题是由于是写文件系统时的错误，写cramfs用nand write就可以了，但写jffs2文件系统要用nand write.jffs2命令。
+
+2. 错误二：jffs2_scan_eraseblock(): Magic bitmask 0x1985 not found at 0x0050e154: 0xfbeb instead
+   解决办法：一般是mkfs.jffs2的 -e 参数的指示错误或者--pad 未指定，请根据datasheet制定对应的大小。  
+   海思命令： ./mkfs.jffs2 -d $(TARGET_FS_DIR)/$(PUB_ROOTFS)  -l -e 0x20000 --pad=0x5000000 -o $(TFTP_HOME)/$(PUB_IMAGE)/rootfs_128k.jffs2 -n;popd
+
+   TI命令：mkfs.jffs2 -lqn –e 128 -r target -o /tftpboot/rd-jffs2.bin
+
+   注意：在用nand write 命令写生成的jffs2固件时，nand write指定的固件大小需要是于Nand
+   Flash page大小对齐，如：page size = 2K （0x800），但是写入的jfss2固件大小为0x19B8004
+   页大小对齐后是0x19B8800
+
+3. 错误三：CLEANMARKER node found at 0x0042c000 has totlen 0xc != normal 0x0  
+   解决办法：编译生成jffs2固件，添加上编译选项 -n 就会消失。
+
+4. 常用调试命令：
+   mtdinfo /dev/mtdx
+
+5. 写yaffs2的格式：
+    ```  
+    #!/bin/sh
+
+    flash_eraseall -q /dev/mtd3
+
+    nandwrite -o -s 0x20000 /dev/mtd3 /media/sdb1/appfs_2k_1bit.yaffs2
+
+  ```  
+这里需要说明：  
+a.  在升级文件系统的时候，如果yaffs2固件自带有ECC校验，需要跳过第一个  
+    block，这里的nand flash的block大小为128K（0x20000），用-s参数可以跳过第一个块   
+b.  如果是通过flash_eraseall 和 nandwrite 指令来完成在线升级文件系统，包括最基本的
+    文件系统，需要考虑系统是reboot命令和mtd命令的存在，否则会烧写失败，这里采用的方案   
+    是，将flash_eraseall 、nandwrite 、reboot几个命令拷贝到文件系统的tmp目录下，注意   
+    在linux系统中tmp目录中的东西是存在于内存中的，也就是如果擦除文件系统后，上面几个
+    命令也还是存在内存中的，我们还是可以执行flash_eraseall、nandwrite、reboot这几个  
+    命令，这里建议采用脚本或者应用程序的形式，将脚本或者应用程序拷贝到tmp目录下，同时，  
+    将烧写要用到的几个命令和系统重启需要用到的命令都拷贝达到tmp目录中，然后，在tmp目录  
+    中完成系统的升级操作。
+    需要注意的是，在指令烧写yaffs2固件的时候，用nand write.yaffs2 写入数据的时候，写入的数据大小需要和实际的文件大小要一样，如果yaffs2固件大小为0x2a21450，那么，nand wirte.yaffs 的时候，写入的大小就是0x2a21450；  
+    而如果是烧写jffs2固件，写入数据的大小要进行要和nand flash的页大小进行对齐，举例：如果固件的大小是0x2a21450，而flash的页大小是2k(0x800),那么，nand write的时候，写入的大小是0x2a21800，否则，文件系统会有问题。这种问题在ubifs固件中没有发现。
+
+    ````
+    参考如下脚本:
+    #!/bin/sh
+
+    cp /sbin/reboot /tmp
+    cp -r /home/mtd /tmp
+    cd /tmp
+    ls -lih
+
+    mtd/flash_erase /dev/mtd0 0 0
+    mtd/nandwrite -p /dev/mtd0 xxx/vmlinux
+
+    mtd/flash_erase /dev/mtd1 0 0
+    mtd/nandwrite -p /dev/mtd1 xxx/rootfs.img
+
+    ./reboot
+
+    ````
+
+#  linux shell
+1. case语句  
+```  
+    case语句适用于需要进行多重分支的应用情况。
+           case分支语句的格式如下：
+               case $变量名 in
+                   模式1）
+               命令序列1
+               ;;
+                   模式2）
+               命令序列2
+            ;;
+                   *）
+               默认执行的命令序列     ;;
+               esac
+
+           case语句结构特点如下：
+           case行尾必须为单词“in”，每一个模式必须以右括号“）”结束。
+           双分号“;;”表示命令序列结束。
+           匹配模式中可是使用方括号表示一个连续的范围，如[0-9]；使用竖杠符号“|”表示或。
+           最后的“*）”表示默认模式，当使用前面的各种模式均无法匹配该变量时，将执行“*）”后的命令序列。
+
+       case语句实例：由用户从键盘输入一个字符，并判断该字符是否为字母、数字或者其他字符，
+
+       并输出相应的提示信息。
+
+    #!/bin/bash
+    read -p "press some key ,then press return :" KEY
+    case $KEY in
+    [a-z]|[A-Z])
+    echo "It's a letter."
+    ;;
+    [0-9])
+    echo "It's a digit."
+    ;;
+    *)
+    echo "It's function keys、Spacebar or other ksys."
+    esac
+
+
+
+    ######################################################
+
+    case word in [ pattern [ | pattern ] ... ) list ;; ] ... esac
+    case/esac的标准用法大致如下:
+    case $arg in
+        pattern | sample) # arg in pattern or sample
+        ;;
+        pattern1) # arg in pattern1
+        ;;
+        *) #default
+        ;;
+    esac
+    arg是您所引入的参数，如果arg内容符合pattern项目的话，那麽便会执行pattern以下的程式码，而该段程式码则以两个分号";;"做结尾。
+
+    可以注意到"case"及"esac"是对称的，如果记不起来的话，把"case"颠倒过来即可。
+
+   ```
+2. for循环语句    
+`````       
+  for variable in values   --------字符串数组依次赋值
+  #!/bin/sh  
+  for i in a b c            字符串列表A B C  
+          字符串用空格分隔,没有括号,没有逗号, 然后循环将其依次赋给变量i  
+          变量没有$  
+  do  
+  echo "i is $i"  
+  done  
+    `````  
+`````   
+  for cmdline in `cat /proc/cmdline`    
+  do
+  	case "$cmdline" in
+  	nfsroot=*)
+  		mountpoint=`echo "$cmdline" | cut -d = -f 2`
+  		;;
+  	esac
+  done
+   `````   
+
+#  嵌入式bootargs参数获取
+   cat /proc/cmdline
+   处理方式有：
+
+   ````
+   #!/bin/sh
+
+  mountpoint=
+
+  if [ -n "$NFSROOT" ] ; then
+  	echo "You are already in nfsroot!" >&2
+  	exit 1
+  fi
+
+  for cmdline in `cat /proc/cmdline`
+  do
+  	case "$cmdline" in
+  	nfsroot=*)
+  		mountpoint=`echo "$cmdline" | cut -d = -f 2`
+  		;;
+  	esac
+  done
+
+  if [ -z "$mountpoint" ] ; then
+  	echo "None of nfsroot found in cmdline."
+  	exit 0
+  fi
+
+  if [ -z "`mount | grep "$mountpoint"`" ] ; then
+  	modprobe nfs
+  	#mount -t nfs -o nolock $mountpoint /nfsroot
+  	umount /opt
+  	mount -t nfs -o nolock -o tcp $mountpoint  /opt
+  	mount -o bind /dev /nfsroot/dev
+  	mount -o bind /proc /nfsroot/proc
+  	mount -o bind /sys /nfsroot/sys
+
+  	mkdir -p /nfsroot/orig-rootfs
+  	mount -o bind / /nfsroot/orig-rootfs
+  fi
+
+  echo -n "Mount: "
+  mount | grep "$mountpoint "
+
+  chroot /nfsroot /usr/bin/env \
+  	NFSROOT=$mountpoint \
+  	HOME=/root \
+  	/bin/sh --login
+  `````
+
+
+#  嵌入式linux 动态配置
+````  
+
+ARM-Linux配置DHCP自动获取IP地址
+
+备注：
+内核版本：2.6.30.9
+busybox版本：1.15.2
+
+PC Linux和开发板Linux的工作用户：root
+
+
+1. 配置内核：
+[*] Networking support --->
+Networking options --->
+<*> Packet socket
+<*> Unix domain sockets
+[*] TCP/IP networking
+[*] IP: kernel level autoconfiguration
+[*] IP: DHCP support
+[*] Network packet filtering framework (Netfilter) --->
+2. 配置busybox:
+Networking Utilities --->
+[*] udhcp client (udhcpc)
+3.建立配置文件：
+从busybox的examples/udhcp/下copy simple.script文件到开发板/usr/share/udhcpc/下，并重命名为default.script
+
+4. 测试：
+在命令台执行udhcpc，注意：必须确保局域网内存在DHCP服务器，否则udhcp执行失败。
+在easy2440上面执行结果如下：
+udhcpc (v1.15.2) started
+Setting IP address 0.0.0.0 on eth0
+Sending discover...
+Sending select for 192.168.1.101...
+Lease of 192.168.1.101 obtained, lease time 7200
+Setting IP address 192.168.1.101 on eth0
+Deleting routers
+route: SIOCDELRT: No such process
+Adding router 192.168.1.1
+Recreating /etc/resolv.conf
+Adding DNS server 211.148.192.141
+Adding DNS server 210.21.196.6
+
+5. 修改系统初始化配置文件，让开发板开机后自动获取IP地址：
+修改/etc/init.d/rcS文件在适当位置添加命令: /sbin/udhcpc &
+
+6. Enjoy it!
+
+  ```
+
+
+#  MakeFile文件编写相关
+1. 定义变量时，需要注意赋值语句，赋值后面不能多出空格，因为Makefile中，空格也是有效的，
+   如：NFS_DEBUG := YES ; 如果YES后面有空格，编译的时候将会把NFS_DEBUG识别为YES加上一个空格，可能导致我们编译错误，这是是要注意的地方。
+
+
+#  嵌入式文件系统类型和区别
+NTFS、FAT 和 FAT32 都是文件系统的类型
+
+文件分配表 (FAT)
+MS-DOS 和其他基于 Windows 的操作系统用来组织和管理文件的文件系统。当您通过使用 FAT 或 FAT32 文件系统格式卷时，文件分配表 (FAT) 是 Windows 创建的数据结构。Windows 在 FAT 中存储关于每个文件的信息，这样它就可以在以后检索文件。其最大分区容量不能超过2GB。 FAT16分区创建的越大，磁盘上每个簇的容量也越大，从而造成的浪费也越大。所以，为了解决这个问题，微软推出了一种全新的磁盘分区格式FAT32，并在Windows 95 OSR2及以后的Windows 版本中提供支持。
+
+FAT32
+文件分配表 (FAT) 文件系统的派生文件系统。与FAT16相比，大大减少了磁盘空间的浪费，这就提高了磁盘的利用率。其缺点、：1)当分区小于512MB时，Fat32不会发生作用。 2)分区不能大于32GB。 3)单个文件不能大于4GB。
+
+NTFS 文件系统
+NTFS是随着Windows NT操作系统而产生的，并随着Windows NT4跨入主力分区格式的行列，它的优点是安全性和稳定性极其出色，在使用中不易产生产生文件碎片，NTFS分区对用户权限作出了非常严格的限制，每个用户都只能按着系统赋予的权限进行操作，任何试图越权的操作都将被系统禁止，同时它还提供了容错结构日志，可以将用户的操作全部记录下来，从而保护了系统的安全。但是，NTFS分区格式的兼容性不好，特别是对使用很广泛的Windows 98 SE/Windows ME系统，它们还需借助第三方软件才能对NTFS分区进行操作，Windows 2000，Windows XP基于NT技术，提供完善的NTFS分区格式的支持。 而且提供更大硬盘分区的支持
+
+EXT2和EXT3和EXT4是linux中的文件系统格式
+
+FAT32 Filesystem: 最大单一档案大小4GB 最大文件系统总容量128GB
+NTFS Filesystem:最大单一档案大小64GB 最大文件系统总容量2TB
+Ext3 Filesystem:Block 大小1KB 2KB 4KB 最大单一档案大小16GB 256GB 2TB 最大文件系统总容量 2TB 8TB 16TB
+EXT FileSystem EXT4增加了48位块地址，最大支持1EB文件系统，和单个16TB的文件。1EB = 1024PB = 2^50;1PB = 1024TB = 2^40;1TB = 1024GB = 2^30
+
+补充：   
+以前，RAID控制器和文件系统都有2TB的限制。控制器上的限制，主要是指每个LUN不能大于2TB，而磁盘组一般则没有这个限制；文件系统的限制主要是指每个分区（partition）不能大于2TB，不过32位Windows要求物理盘也不能大于2TB。
+现在，控制器还有这个限制的已经越来越少了，不过常用的文件系统上倒还是经常会有这个问题。
+NTFS（Windows）：支持最大分区2TB，最大文件2TB
+FAT16（Windows）：支持最大分区2GB，最大文件2GB
+FAT32（Windows）：支持最大分区128GB，最大文件4GB
+HPFS（OS/2）：支持最大分区2TB，最大文件2GB
+EXT2和EXT3（Linux）：支持最大分区4TB，最大文件2GB
+JFS（AIX）：支持最大分区4P（block size=4k），最大文件4P
+XFS（IRIX）：这是个正经的64位的文件系统，可以支持9E（2的63次方）的分区
+注意上面的大小是在采用MBR（msdos）磁盘管理策略的情况，本人亲测在采用gpt磁盘管理策略时，
+NTFS是可以超过2T,本人用的是4T的硬盘。
+
+从技术上讲，突破2TB限制并不一定就是64位文件系统。有以下两种技术手段可以在32位的环境中突破2TB限制：
+1、block size大于512字节
+2、多字段表示block寻址（就像当年的16位DOS能用24位表示内存地址一样）  
+
+通常，windows单个硬盘的最大分区数是128个；  
+在linux中，逻辑分区理论上可有无限个，但实际上因为有如下的分区数量总数的限制：  
+·         SCSI 最多 15个；  
+·         IDE 最多 63 个；  
+这取决于：  
+1)  Linux下只有 /dev/hda， /dev/hda1, …, /dev/hda63等64个可能的设备文件；  
+2)  Linux下只有 /dev/sda， /dev/sda1, …, /dev/sda15等16个可能的设备文件；  
+因此，实际上逻辑分区的数量上限是：  
+·         SCSI有#5~#15共11个逻辑分区；  
+·         SCSI有#5~#63共59个逻辑分区；  
+
+
+常用工具fdisk和parted区别  
+通常我们用的比较多的一般都是fdisk工具来进行分区，但是现在由于磁盘越来越廉价，而且磁盘空  间越来越大;而fdisk工具他对分区是有大小限制的，它只能划分小于2T的磁盘。但是现在的磁盘空间 很多都已经是远远大于2T了，甚至达到2.5T和3T,那要怎么办能，有两个方法，其一是通过卷管理来  实现，其二就是通过我们今天谈到的Parted工具来实现对GPT磁盘进行分区操作。
+
+常用命令：  
+  mkfs.ext4 -T largefile /dev/sdb   
+  mkfs.ext3 /dev/sdXX -O sparse_super,large_file -m 0 -T largefile4  
+  mkfs –t ext4 –L music –b 4096 /dev/sdb5  （-b 很重要，4K可以为16TB）  
+  即将GPT方式更改为MBR方式:  
+  parted -s /dev/sda mklabel msdos
+  然后点击CTRL+ALT+F6切换到图形界面，重新划分分区，点击下一步进行操作即可。
+  parted /dev/sda  mklabel msdos y  mkpart primary fat32 2048s 2000GB  
+  parted /dev/sda mklabel gpt y mkpart primary ntfs 4096s 100%
+  注意：parted 指定分区格式需要是自己目标格式，如果要格式化为 ntfs，就指定为ntfs
+
+  题外话：为什么2T的硬盘格式化后是1.8T,4T的格式化后是3.6T呢？  
+  原因在于：  
+  硬盘厂商是以1000进制  硬盘数据是以1024进制   
+	2T X 1000 X 1000 X 1000 X 1000 / 1024 /1024 /1024 /1024 = 1.818989403545856 T  
+	1T = 1024G = 1048576M = 1073741824K = 1099511627776B   
+  从上面可以看出原因了吧！
+
+#  嵌入式ntfs文件格式支持
+   在linux系统中，通常通过ntfs-3g工具来支持ntfs文件系统的一系列操作，ntfs-3g有对应的  
+   开源代码，用户可以下载进行编译，也可以通过命令直接安装nfts-3g工具。
+   下载连接：http://www.tuxera.com/ 在网页的最下面有源码的下载链接。
+   官方帮助文档：http://www.tuxera.com/community/open-source-ntfs-3g/
+
+   使用ntfs方法：  
+   1.  内核增加fuse驱动
+   2.  交叉编译ntfs-3g源码，方法如下：  
+     a.到http://www.tuxera.com/下载最新的ntfs-3g源码（网页最下面open source）  
+     b.将源码解压到有装到有交叉编译链的linux虚拟机中，进行编译
+       （1）进入解压后的目录   cd ntfs-3g_ntfsprogs-2014.2.15  
+      ./configure CC=arm-hisiv200-linux-gcc --host=arm-hisiv200-linux --prefix=/home/zxf/ntfs/ --exec-prefix=/home/zxf/ntfs/target  
+
+        (2) 执行make 和 make install  
+
+        （3）mv  /home/zxf/ntfs/target/lib/ibntfs-3g.so.85.0.0          /home/zxf/ntfs/target/lib/libntfs-3g.so.85   
+
+        （4) 把/home/zxf/ntfs/target/lib/libntfs-3g.so.85  和 /home/zxf/ntfs/target/bin/ntfs-3g   拷到开发板 /usr/lib/ 和 /usr/bin/  下即可  
+
+        回到ntfs-3g源码目录下，找到./src/.lib 和 ./libntfs-3g/.lib 这两个隐藏目录，在目录下就可以找到ntfs-3g和libntfs-3g.so文件，拷贝到文件系统的/bin和/lib下就可以在板子上面使用ntfs-3g挂载ntfs盘了。
+
+   3.  挂载命令  
+
+#  find命令  
+1. find . -regex '.*\.txt\|.*\.doc\|.*\.mp3'  
+   *:表示除了"."以外的任何字符
+   .*:".*"表示所有字符，因为.表示任意一个字符，*是前面字符的重复。
+#  sed命令  
+sed  '49s/^/\t/' nginx.conf  
+sed  -i '49c server_name 192.168.1.180;' nginx.conf | sed '49s/^/\t/' nginx.conf  
+
+#  tr命令
+1、删除Windows文件“造成”的'^M'字符  
+ cat file | tr -d "\r" > new_file   
+  或者   
+ cat file | tr -s "\r" "\n" > new_file    
+
+#  awk命令
+/sbin/ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $2}'|tr -d "addr:"
+awk -F"=" '{if($1=="IP")print("IP=102.117.2.23")}' filename > filename.new 2搜索>/dev/null
