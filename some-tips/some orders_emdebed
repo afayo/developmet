@@ -77,3 +77,174 @@ vol_type=static
 vol_name=recovery
 vol_alignment=1
 vol_flags=autoresize
+
+mount挂载命令
+通常情况下，如果不加参数和命令，系统将会使用默认的挂载参数，如字符集采用内核默认的，
+如：mount /dev/sda1 /media/sda1 ; 运行后，参用的字符集和编码会使用内核指定默认值，
+
+现在内核支持3种ntfs挂载方式，分别是ntfs-3g，mount -t ntfs-3g和mount -t ntfs，
+前两种好像都是使用userspace的，后一种似乎不是，不过第三种要支持ntfs分区写入的话，需要重新编译内核，在内核中把写入支持打开;
+第二种mount -t ntfs-3g目前没哟挂载成功过，第三种mount -t ntfs 貌似只支持最大2T，超过2T挂载失败，但是第一种ntfs-3g 直接挂载则可以
+超过2T的大小
+
+注意：在挂载好后，通过ftp客户端访问挂载目录，如果出现中文乱码，是由于字符集没有对应，需要配置一下ftp客户端的字符集，这里用的是
+fileZilla，可以正常显示中文字符。
+
+mount -t ntfs  -o nls=utf8,umask=00 /dev/sda1 /mnt/sda1/
+mount  -t vfat -o codepage=cp936,iocharset=gb2312 /dev/sdb1 /media/sdb1
+
+挂载文件系统后，如果希望支持中文，可以选择
+1.设置系统的 LANG 为 zh_CN.UTF-8
+2. 挂载U 盘时指定字符编码
+ mount -t vfat -o codepage=936,iocharset=utf8  /dev/sda1 /mnt
+3. 内核配置
+设置 FAT 的默认 codepage 为 936,默认iocharset 为iso8859-1
+4.设置默认语言支持为 cp936(即中文),添加支持的字符集,GB2312,ISO8859-1,UTF-8
+注意：对于busybox，从1.17.1开始默认对中文不支持，需要该两个文件件，具体可以找万能的度娘。
+
+#  嵌入式ntfs文件格式支持
+   在linux系统中，通常通过ntfs-3g工具来支持ntfs文件系统的一系列操作，ntfs-3g有对应的  
+   开源代码，用户可以下载进行编译，也可以通过命令直接安装nfts-3g工具。
+   下载连接：http://www.tuxera.com/ 在网页的最下面有源码的下载链接。
+   官方帮助文档：http://www.tuxera.com/community/open-source-ntfs-3g/
+
+   使用ntfs方法：  
+   1.  内核增加fuse驱动
+   2.  交叉编译ntfs-3g源码，方法如下：  
+     a.到http://www.tuxera.com/下载最新的ntfs-3g源码（网页最下面open source）  
+     b.将源码解压到有装到有交叉编译链的linux虚拟机中，进行编译
+       （1）进入解压后的目录   cd ntfs-3g_ntfsprogs-2014.2.15  
+      ./configure CC=arm-hisiv200-linux-gcc --host=arm-hisiv200-linux --prefix=/home/zxf/ntfs/ --exec-prefix=/home/zxf/ntfs/target  
+
+        (2) 执行make 和 make install  
+
+        （3）mv  /home/zxf/ntfs/target/lib/ibntfs-3g.so.85.0.0          /home/zxf/ntfs/target/lib/libntfs-3g.so.85   
+
+        （4) 把/home/zxf/ntfs/target/lib/libntfs-3g.so.85  和 /home/zxf/ntfs/target/bin/ntfs-3g   拷到开发板 /usr/lib/ 和 /usr/bin/  下即可  
+
+        回到ntfs-3g源码目录下，找到./src/.lib 和 ./libntfs-3g/.lib 这两个隐藏目录，在目录下就可以找到ntfs-3g和libntfs-3g.so文件，拷贝到文件系统的/bin和/lib下就可以在板子上面使用ntfs-3g挂载ntfs盘了。
+
+   3.  挂载命令  
+   ntfs-3g /dev/sda1 /media/sda1 
+   
+   
+#  嵌入式文件系统类型和区别
+NTFS、FAT 和 FAT32 都是文件系统的类型
+
+文件分配表 (FAT)
+MS-DOS 和其他基于 Windows 的操作系统用来组织和管理文件的文件系统。当您通过使用 FAT 或 FAT32 文件系统格式卷时，文件分配表 (FAT) 是 Windows 创建的数据结构。Windows 在 FAT 中存储关于每个文件的信息，这样它就可以在以后检索文件。其最大分区容量不能超过2GB。 FAT16分区创建的越大，磁盘上每个簇的容量也越大，从而造成的浪费也越大。所以，为了解决这个问题，微软推出了一种全新的磁盘分区格式FAT32，并在Windows 95 OSR2及以后的Windows 版本中提供支持。
+
+FAT32
+文件分配表 (FAT) 文件系统的派生文件系统。与FAT16相比，大大减少了磁盘空间的浪费，这就提高了磁盘的利用率。其缺点、：1)当分区小于512MB时，Fat32不会发生作用。 2)分区不能大于32GB。 3)单个文件不能大于4GB。
+
+NTFS 文件系统
+NTFS是随着Windows NT操作系统而产生的，并随着Windows NT4跨入主力分区格式的行列，它的优点是安全性和稳定性极其出色，在使用中不易产生产生文件碎片，NTFS分区对用户权限作出了非常严格的限制，每个用户都只能按着系统赋予的权限进行操作，任何试图越权的操作都将被系统禁止，同时它还提供了容错结构日志，可以将用户的操作全部记录下来，从而保护了系统的安全。但是，NTFS分区格式的兼容性不好，特别是对使用很广泛的Windows 98 SE/Windows ME系统，它们还需借助第三方软件才能对NTFS分区进行操作，Windows 2000，Windows XP基于NT技术，提供完善的NTFS分区格式的支持。 而且提供更大硬盘分区的支持
+
+EXT2和EXT3和EXT4是linux中的文件系统格式
+
+FAT32 Filesystem: 最大单一档案大小4GB 最大文件系统总容量128GB
+NTFS Filesystem:最大单一档案大小64GB 最大文件系统总容量2TB
+Ext3 Filesystem:Block 大小1KB 2KB 4KB 最大单一档案大小16GB 256GB 2TB 最大文件系统总容量 2TB 8TB 16TB
+EXT FileSystem EXT4增加了48位块地址，最大支持1EB文件系统，和单个16TB的文件。1EB = 1024PB = 2^50;1PB = 1024TB = 2^40;1TB = 1024GB = 2^30
+
+补充：   
+以前，RAID控制器和文件系统都有2TB的限制。控制器上的限制，主要是指每个LUN不能大于2TB，而磁盘组一般则没有这个限制；文件系统的限制主要是指每个分区（partition）不能大于2TB，不过32位Windows要求物理盘也不能大于2TB。
+现在，控制器还有这个限制的已经越来越少了，不过常用的文件系统上倒还是经常会有这个问题。
+NTFS（Windows）：支持最大分区2TB，最大文件2TB
+FAT16（Windows）：支持最大分区2GB，最大文件2GB
+FAT32（Windows）：支持最大分区128GB，最大文件4GB
+HPFS（OS/2）：支持最大分区2TB，最大文件2GB
+EXT2和EXT3（Linux）：支持最大分区4TB，最大文件2GB
+JFS（AIX）：支持最大分区4P（block size=4k），最大文件4P
+XFS（IRIX）：这是个正经的64位的文件系统，可以支持9E（2的63次方）的分区
+注意上面的大小是在采用MBR（msdos）磁盘管理策略的情况，本人亲测在采用gpt磁盘管理策略时，
+NTFS是可以超过2T,本人用的是4T的硬盘。
+
+从技术上讲，突破2TB限制并不一定就是64位文件系统。有以下两种技术手段可以在32位的环境中突破2TB限制：
+1、block size大于512字节
+2、多字段表示block寻址（就像当年的16位DOS能用24位表示内存地址一样）  
+
+通常，windows单个硬盘的最大分区数是128个；  
+在linux中，逻辑分区理论上可有无限个，但实际上因为有如下的分区数量总数的限制：  
+·         SCSI 最多 15个；  
+·         IDE 最多 63 个；  
+这取决于：  
+1)  Linux下只有 /dev/hda， /dev/hda1, …, /dev/hda63等64个可能的设备文件；  
+2)  Linux下只有 /dev/sda， /dev/sda1, …, /dev/sda15等16个可能的设备文件；  
+因此，实际上逻辑分区的数量上限是：  
+·         SCSI有#5~#15共11个逻辑分区；  
+·         SCSI有#5~#63共59个逻辑分区；  
+
+
+常用工具fdisk和parted区别  
+通常我们用的比较多的一般都是fdisk工具来进行分区，但是现在由于磁盘越来越廉价，而且磁盘空  间越来越大;而fdisk工具他对分区是有大小限制的，它只能划分小于2T的磁盘。但是现在的磁盘空间 很多都已经是远远大于2T了，甚至达到2.5T和3T,那要怎么办能，有两个方法，其一是通过卷管理来  实现，其二就是通过我们今天谈到的Parted工具来实现对GPT磁盘进行分区操作。
+
+常用命令：  
+  mkfs.ext4 -T largefile /dev/sdb   
+  mkfs.ext3 /dev/sdXX -O sparse_super,large_file -m 0 -T largefile4  
+  mkfs –t ext4 –L music –b 4096 /dev/sdb5  （-b 很重要，4K可以为16TB）  
+  即将GPT方式更改为MBR方式:  
+  parted -s /dev/sda mklabel msdos
+  然后点击CTRL+ALT+F6切换到图形界面，重新划分分区，点击下一步进行操作即可。
+  parted /dev/sda  mklabel msdos y  mkpart primary fat32 2048s 2000GB  
+  parted /dev/sda mklabel gpt y mkpart primary ntfs 4096s 100%
+  注意：parted 指定分区格式需要是自己目标格式，如果要格式化为 ntfs，就指定为ntfs
+
+  题外话：为什么2T的硬盘格式化后是1.8T,4T的格式化后是3.6T呢？  
+  原因在于：  
+  硬盘厂商是以1000进制  硬盘数据是以1024进制   
+	2T X 1000 X 1000 X 1000 X 1000 / 1024 /1024 /1024 /1024 = 1.818989403545856 T  
+	1T = 1024G = 1048576M = 1073741824K = 1099511627776B   
+  从上面可以看出原因了吧！
+
+
+#  嵌入式linux 动态配置
+````  
+
+ARM-Linux配置DHCP自动获取IP地址
+
+备注：
+内核版本：2.6.30.9
+busybox版本：1.15.2
+
+PC Linux和开发板Linux的工作用户：root
+
+
+1. 配置内核：
+[*] Networking support --->
+Networking options --->
+<*> Packet socket
+<*> Unix domain sockets
+[*] TCP/IP networking
+[*] IP: kernel level autoconfiguration
+[*] IP: DHCP support
+[*] Network packet filtering framework (Netfilter) --->
+2. 配置busybox:
+Networking Utilities --->
+[*] udhcp client (udhcpc)
+3.建立配置文件：
+从busybox的examples/udhcp/下copy simple.script文件到开发板/usr/share/udhcpc/下，并重命名为default.script
+
+4. 测试：
+在命令台执行udhcpc，注意：必须确保局域网内存在DHCP服务器，否则udhcp执行失败。
+在easy2440上面执行结果如下：
+udhcpc (v1.15.2) started
+Setting IP address 0.0.0.0 on eth0
+Sending discover...
+Sending select for 192.168.1.101...
+Lease of 192.168.1.101 obtained, lease time 7200
+Setting IP address 192.168.1.101 on eth0
+Deleting routers
+route: SIOCDELRT: No such process
+Adding router 192.168.1.1
+Recreating /etc/resolv.conf
+Adding DNS server 211.148.192.141
+Adding DNS server 210.21.196.6
+
+5. 修改系统初始化配置文件，让开发板开机后自动获取IP地址：
+修改/etc/init.d/rcS文件在适当位置添加命令: /sbin/udhcpc &
+
+6. Enjoy it!
+
+  ```
+
