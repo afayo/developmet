@@ -1,0 +1,16 @@
+在交叉编译ffmpeg的时候，需要注意配置参数，对应DM8148,没有裁剪的配置如下：
+
+PKG_CONFIG_PATH="./../lib/pkgconfig" ./configure --arch=arm \
+    --cpu=cortex-a8 \
+	--target-os=linux \
+   	--enable-cross-compile \
+	--cross-prefix=arm-arago-linux-gnueabi- \
+   	--extra-cflags='-march=armv7-a -mfpu=neon -marm -mfloat-abi=softfp -mtune=cortex-a8 -I./../include'  \
+	--extra-ldflags="-L./../lib" \
+	--prefix=./..
+	
+	
+	
+	如果需要裁剪，用户根据./configure --help 查看帮助文档
+	
+	
