@@ -12,5 +12,11 @@ PKG_CONFIG_PATH="./../lib/pkgconfig" ./configure --arch=arm \
 	
 	
 	如果需要裁剪，用户根据./configure --help 查看帮助文档
+注意：1.如果提示不能创建可执行程序,则需要将交叉编译工具添加在系统环境变量PATH中,然后export PATH,当前shell下既可以生效.
+
+2,如果提示如下信息,表示,由于编译其指定了编译选项-Werror,但出现变量已经不再使用,在程序代码中却又用到了destruct,所以会报错,
+解决办法是去除编译选项-Werror
+error: 'destruct' is deprecated (declared at /media/hison/home/afa/work/dm8148/Source/ipnc_rdk/../ipnc_rdk/ipnc_app/lib3rd/ffmpeg_2_5_2/include/libavcodec/avcodec.h:1444)
+
 	
 	
