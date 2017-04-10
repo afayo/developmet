@@ -411,3 +411,20 @@ sed  -i '49c server_name 192.168.1.180;' nginx.conf | sed '49s/^/\t/' nginx.conf
 #  awk命令
 /sbin/ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $2}'|tr -d "addr:"
 awk -F"=" '{if($1=="IP")print("IP=102.117.2.23")}' filename > filename.new 2搜索>/dev/null
+
+#在编译运行可执行程序中，出现了illegal instruction错误提示
+通常这种情况下，程序是可以正常编译的，但是在程序需要动态加载库的时候，可能就是会出现提示非法指令的错误提示，然后进程就退出，这种情况，多数是由于
+不同的体系架构导致的，需要开发者在进行编译应用程序的时候，指定对应的平台的CPU架构，具体应用的架构可以通过xxxx-readelf -A a.bin 指令来查看a.bin应用
+的CPU体系架构，注意，在使用海思芯片hi3531时，应用程序编译，应该指定下面的选项：-march=armv7-a -mtune=cortex-a9 -mfloat-abi=softfp -mfpu=vfpv3-d16
+
+
+
+
+
+
+
+
+
+
+
+
