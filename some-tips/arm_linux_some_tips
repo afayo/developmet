@@ -417,8 +417,7 @@ awk -F"=" '{if($1=="IP")print("IP=102.117.2.23")}' filename > filename.new 2搜�
 不同的体系架构导致的，需要开发者在进行编译应用程序的时候，指定对应的平台的CPU架构，具体应用的架构可以通过xxxx-readelf -A a.bin 指令来查看a.bin应用
 的CPU体系架构，注意，在使用海思芯片hi3531时，应用程序编译，应该指定下面的选项：-march=armv7-a -mtune=cortex-a9 -mfloat-abi=softfp -mfpu=vfpv3-d16
 
-
-
+'-march='  armv2 armv2a armv3 armv3m armv4 armv4t armv5 armv5e armv5t armv5te armv6 armv6-m armv6j armv6k armv6s-m armv6t2 armv6z armv6zk armv7 armv7-a armv7-m armv7-r armv7e-m armv7ve armv8-a armv8-a+crc iwmmxt iwmmxt2 native
 
 
 
