@@ -13,6 +13,11 @@ ub[a-z][0-9]      0:0 666 @(/etc/hotplug/insert.sh $MDEV $SUBSYSTEM)
 ub[a-z]           0:0 666 $(/etc/hotplug/remove.sh $MDEV $SUBSYSTEM)
 mmcblk[0-9]p[0-9] 0:0 666 @(/etc/hotplug/insert.sh $MDEV $SUBSYSTEM)
 mmcblk[0-9]       0:0 666 $(/etc/hotplug/remove.sh $MDEV $SUBSYSTEM)
+
+其中，$MDEV $SUBSYSTEM分别是第一列的值和该设备属于那种设备类型，如下：
+root@DM8127_IPNC:/mnt# cat /opt/log.txt 
+sda
+block
 3、在/etc下建立hotplug文件夹，并在该文件夹下建立两个文件
 
 insert.sh:
