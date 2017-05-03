@@ -1,0 +1,1 @@
+本目录用于总结挂载ubifs文件系统相关知识，主要是主动mkfs.ubifs,ubizine工具、uboot烧写和linux系统挂载问题进行分析。
