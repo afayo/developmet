@@ -78,7 +78,9 @@ cd C:\Users\yourname\.atom\packages\markdown-themeable-pdf-master
 
     flash_eraseall -q /dev/mtd3
 
-    nandwrite -o -s 0x20000 /dev/mtd3 /media/sdb1/appfs_2k_1bit.yaffs2
+    nandwrite -o -s 0x20000 /dev/mtd3 /media/sdb1/appfs_2k_1bit.yaffs2 && sync
+    需要同步到内存中，
+    执行 sync    
 
   ```  
 这里需要说明：  
