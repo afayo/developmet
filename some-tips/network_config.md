@@ -63,4 +63,18 @@ To target 10.41.0.0, subnet mask 255.255.0.0 route of the next hop address chang
 
 route change 10.41.0.0 mask 255.255.0.0 10.27.0.25 
 
+=================================================
+2017-06-09 补充通过命令行获取网络相关参数
+/sbin/ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $2}'|tr -d "addr:"
 
+/sbin/ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $4}'|tr -d "Mask:"
+
+
+ipaddr=`/sbin/ifconfig eth0|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $2}'|tr -d "addr:"`
+netmask=`/sbin/ifconfig eth0|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $4}'|tr -d "Mask:" `
+gateway=`route -n | grep eth0 | grep UG | awk '{print $2}'`
+mac=`ifconfig |grep eth0|awk '{print $5}'`
+dns=`cat /etc/resolv.conf | awk '{print $2}'`
+
+
+=================================================
