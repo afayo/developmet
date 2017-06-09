@@ -19,4 +19,4 @@ PKG_CONFIG_PATH="./../lib/pkgconfig" ./configure --arch=arm \
 error: 'destruct' is deprecated (declared at /media/hison/home/afa/work/dm8148/Source/ipnc_rdk/../ipnc_rdk/ipnc_app/lib3rd/ffmpeg_2_5_2/include/libavcodec/avcodec.h:1444)
 
 	
-	
+
