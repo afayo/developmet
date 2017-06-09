@@ -185,4 +185,28 @@ dia/sdb1
 edia/s
 ===================================================================================================
 
+补充挂在磁盘中文显示问题
+#mount -t vfat -o codepage=936,iocharset=utf8 /dev/sda1 /media/sda1/  不能正常显示中文
 
+能正常显示中文
+mount -t vfat -o codepage=936,iocharset=cp963 /dev/sda1 /media/sda1/ 
+mount -t vfat -o codepage=936,iocharset=gb2312 /dev/sda1 /media/sda1/ 
+mount -t vfat -o codepage=936,iocharset=utf8 /dev/sda1 /media/sda1/ 
+
+修改fat32
+    <*> MSDOS fs support                                                                                                            │ │  
+  │ │                                                          <*> VFAT (Windows-95) fs support                                                                                                │ │  
+  │ │                                                          (936) Default codepage for FAT                                                                                                  │ │  
+  │ │                                                          (utf8) Default iocharset for FAT                                                                                                │ │  
+  │ │                                                          < > NTFS file system support
+
+
+修改本地语言字符集
+--- Native language support                                                                                                     │ │  
+  │ │                                                          (utf8) Default NLS Option    
+<*>   Simplified Chinese charset (CP936, GB2312)     
+<*>   ASCII (United States) 
+<*>   NLS UTF-8
+
+知识补充：
+1、在linux系统中通常都是utf8的，ntfs-3g自从2009的版本，都是统一成utf8编码格式
