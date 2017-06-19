@@ -1,19 +1,22 @@
 
 //rtsp 转成rtmp
-./ffmpeg -y -i rtsp://192.168.1.160:8557/PSIA/Streaming/channels/2?videoCodecType=H.264 -ab 128 -ar 44100 -ac 2 -vol 200 -vcodec copy -f flv rtmp://192.168.1.188:1935/live?vhost=vprctrl/test
+./ffmpeg -y -i rtsp://192.168.1.160:8557/PSIA/Streaming/channels/2?videoCodecType=H.264 -ab 128 -ar 44100 -ac 2 -vol 200 -vcodec copy -f flv rtmp://192.168.1.188:1935/live?vhost=vprctrl/test    
+
+**指定tcp传输方式**
+./ffmpeg -y -i rtsp://192.168.1.135/media/live/0  -rtsp_transport tcp   -acodec copy -vcodec copy  -f mp4 local_rtsp.mp4   
 
 //将rtsp录制成mp4
-./ffmpeg -y -i rtsp://192.168.1.239:8557/PSIA/Streaming/channels/2?videoCodecType=H.264 -ab 128 -ar 44100 -ac 2 -vol 200 -vcodec copy -acodec copy -f mp4 dump.mp4
-//aacDecoder_DecodeFrame() failed: 4002 需要添加-bsf:a aac_adtstoasc选项
-./ffmpeg -y -i  rtsp://192.168.1.239:8557/PSIA/Streaming/channels/2?videoCodecType=H.264 -acodec copy -vcodec copy -bsf:a aac_adtstoasc -f mp4  local_rtsp.mp4
+./ffmpeg -y -i rtsp://192.168.1.239:8557/PSIA/Streaming/channels/2?videoCodecType=H.264 -ab 128 -ar 44100 -ac 2 -vol 200 -vcodec copy -acodec copy -f mp4 dump.mp4   
+//aacDecoder_DecodeFrame() failed: 4002 需要添加-bsf:a aac_adtstoasc选项  
+./ffmpeg -y -i  rtsp://192.168.1.239:8557/PSIA/Streaming/channels/2?videoCodecType=H.264 -acodec copy -vcodec copy -bsf:a aac_adtstoasc -f mp4  local_rtsp.mp4    
 
 
-常用命令
-ffmpeg -ar 8000 -ac 1 -f alaw -i test.pcm  -acodec libmp3lame -ac 1 -ab 128k 1.mp3
+##常用命令
+>ffmpeg -ar 8000 -ac 1 -f alaw -i test.pcm  -acodec libmp3lame -ac 1 -ab 128k 1.mp3
 
-ffmpeg -i test.wav -f mp3 -acodec libmp3lame -y wav2mp3.mp3
+>ffmpeg -i test.wav -f mp3 -acodec libmp3lame -y wav2mp3.mp3
 
-ffmpeg -i rtsp://218.204.223.237:554/live/1/0547424F573B085C/gsfp90ef4k0a6iap.sdp -f flv -r 25 -s 640x480 rtmp://localhost/myapp/stream1
+>ffmpeg -i rtsp://218.204.223.237:554/live/1/0547424F573B085C/gsfp90ef4k0a6iap.sdp -f flv -r 25 -s 640x480 rtmp://localhost/myapp/stream1
 
 ffmpeg.exe -i rtsp://admin:admin@192.168.66.119/ -vcodec copy -acodec copy -f rtsp rtsp://127.0.0.1/test.sdp
 
