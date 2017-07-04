@@ -1,2 +1,2 @@
 # development
-**pravite  summary abouut development**
+**pravite  summary about development**
