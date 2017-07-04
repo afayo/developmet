@@ -1,2 +1,2 @@
-# developmet
-for codec and some pravite's  summy
+# development
+**pravite  summary abouut development**
