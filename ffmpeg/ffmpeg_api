@@ -1,0 +1,50 @@
+
+关于使用ffmpeg api封装avi、mp4、flv视频格式需要注意的事项，
+现总结如下:
+=====================================================
+AVI视频格式中packet包特点是：
+没有pts，需要dts，duration信息
+video：dts,duration都是需要的，pts信息不需要
+audio：pts、dts，duration都是需要的
+
+没有pts信息，会导致视频点播的时候出现进度条不能跳转的问题
+avi的帧率信息，与time_base相关：st->avg_frame_rate = av_inv_q(st->time_base);
+
+avi的time_base推荐是： 
+video：time_base=1/600=avg_frame_rate(such as: 1/(frame_rate*20))；codec_time_base=1/1200
+audio：time_base=samples_num/sample_rate(such as: aac:1024/48000)；codec_time_base=1/sample_rate
+
+
+
+=====================================================
+FLV视频格式，packet包特点是：
+video：pts、dts都是需要的，duration信息不需要
+audio：pts、dts，duration都是需要的
+
+flv没有视频索引，不能av_seek_frame
+
+flv需要的标记：CODEC_FLAG_GLOBAL_HEADER
+flv的帧率信息，与平均帧率有关：flv->framerate = av_q2d(s->streams[i]->avg_frame_rate);
+
+flv的time_base推荐是： 
+video：time_base=1/1000；codec_time_base=1/2000
+audio：time_base=1/1000；codec_time_base=1/44100或者是(1/sample_rate)
+
+
+=====================================================
+MP4视频格式，packet包特点是：
+
+video：pts、dts，duration都是需要的
+audio：pts、dts，duration都是需要的
+
+mp4需要的标记：CODEC_FLAG_GLOBAL_HEADER
+mp4的帧率信息，通过track的平均帧率进行计算得到：
+    if (track->st->avg_frame_rate.num > 0 && track->st->avg_frame_rate.den > 0)
+        put_bits32(&pbc, track->st->avg_frame_rate.num / track->st->avg_frame_rate.den);
+
+mp4的time_base推荐是： 
+video：time_base=1/90000；codec_time_base=1/180000
+audio：time_base=1/sample_rate；codec_time_base=1/sample_rate
+
+
+===========================================================
