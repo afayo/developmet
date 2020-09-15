@@ -9,8 +9,15 @@ uclibC库.9.33.2 (芯片厂家提供的库不支持backtrace)
 a.需要增加编译选项-g   -ggdb  -mpoke-function-name  -ldl  -rdynamic -funwind-tables -ffunction-sections
 b.生成的目标程序只能通过C或者CPP文件直接生成：如：gcc $(CFLAGS) *.c -o test $(LDFLAGS) , 将所有C文件编译生成test文件。
 （注意：如果是gcc $(CFLAGS) *.o -o test $(LDFLAGS)，将对应的.o文件生成test文件，本人调试的环境下，没有文件符号，定位不到异常点。）
+linux系统模式不开启core文件生成，可以通过如下配置，开启
 
-第二种是借助信号量SIGSEGV，通过注册信号处理函数，将发生段错误的时候，堆栈中的信息打印出来。
+ulimit -c unlimited
+#echo "1" > /proc/sys/kernel/core_uses_pid 
+#echo "/tmp/core/core-%e-%p-%s-%t" > /proc/sys/kernel/core_pattern
+echo "/tmp/core/core-%e" > /proc/sys/kernel/core_pattern
+
+
+第二种是借助信号量SIGSEGV，通过注册信号处理函数，将发生段错误的时候，堆栈中的信息打印出来。该方法也适用于core文件太大没有磁盘空间存储的情况。
 这里分两种情况：
 第一类情况是，借助标准的函数:
 		#include <execinfo.h>
