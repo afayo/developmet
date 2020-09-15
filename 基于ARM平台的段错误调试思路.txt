@@ -1,0 +1,223 @@
+
+段错误调试
+平台：arm
+uclibC库.9.33.2 (芯片厂家提供的库不支持backtrace)
+交叉编译器：arm-hisiv300-linux-gcc
+
+目前段错误的调试方法主要由两种: 
+第一种是借助gdb来分析coredump文件，该方式在编译程序时候，也要特别注意
+a.需要增加编译选项-g   -ggdb  -mpoke-function-name  -ldl  -rdynamic -funwind-tables -ffunction-sections
+b.生成的目标程序只能通过C或者CPP文件直接生成：如：gcc $(CFLAGS) *.c -o test $(LDFLAGS) , 将所有C文件编译生成test文件。
+（注意：如果是gcc $(CFLAGS) *.o -o test $(LDFLAGS)，将对应的.o文件生成test文件，本人调试的环境下，没有文件符号，定位不到异常点。）
+
+第二种是借助信号量SIGSEGV，通过注册信号处理函数，将发生段错误的时候，堆栈中的信息打印出来。
+这里分两种情况：
+第一类情况是，借助标准的函数:
+		#include <execinfo.h>
+
+       int backtrace(void **buffer, int size);
+
+       char **backtrace_symbols(void *const *buffer, int size);
+
+       void backtrace_symbols_fd(void *const *buffer, int size, int fd);
+
+可以将堆栈信息输出来，调试也是很方便，
+编译要求：同样需要增加编译选项“ -g   -ggdb  -mpoke-function-name  -ldl  -rdynamic -funwind-tables -ffunction-sections ”
+用例可以参考：网络资料：
+=========================================================================================
+#include <stdio.h>  
+#include <stdlib.h>  
+#include <stddef.h>  
+#include <execinfo.h>  
+#include <signal.h>  
+  
+void dump(int signo)  
+{  
+    void *buffer[30] = {0};  
+    size_t size;  
+    char **strings = NULL;  
+    size_t i = 0;  
+  
+    size = backtrace(buffer, 30);  
+    fprintf(stdout, "Obtained %zd stack frames.nm\n", size);  
+    strings = backtrace_symbols(buffer, size);  
+    if (strings == NULL)  
+    {  
+        perror("backtrace_symbols.");  
+        exit(EXIT_FAILURE);  
+    }  
+      
+    for (i = 0; i < size; i++)  
+    {  
+        fprintf(stdout, "%s\n", strings[i]);  
+    }  
+    free(strings);  
+    strings = NULL;  
+    exit(0);  
+}  
+  
+void func_c()  
+{  
+    *((volatile char *)0x0) = 0x9999;  
+}  
+  
+void func_b()  
+{  
+    func_c();  
+}  
+  
+void func_a()  
+{  
+    func_b();  
+}  
+  
+int main(int argc, const char *argv[])  
+{  
+    if (signal(SIGSEGV, dump) == SIG_ERR)  
+        perror("can't catch SIGSEGV");  
+    func_a();  
+    return 0;  
+}  
+
+=========================================================================================
+
+第二类情况是，当前平台才有个C库中没有backtrace函数，那么就要自定义实现类backtrace函数，然后配置编译选项参数和addr2line，来推测定位代码异常点。
+其中编译选项参数还是推荐如下：
+CFLAGS+=  -g   -ggdb  -mpoke-function-name  -ldl  -rdynamic -funwind-tables -ffunction-sections
+
+代码用例：
+=========================================================================================
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <ucontext.h>
+#include <signal.h>
+#include <dlfcn.h>
+
+
+
+/*typedef struct*/
+/*{*/
+	/*const char *dli_fname;  [> File name of defining object.  <]*/
+	/*void *dli_fbase;        [> Load address of that object.  <]*/
+	/*const char *dli_sname;  [> Name of nearest symbol.比如函数名<]*/
+	/*void *dli_saddr;        [> Exact value of nearest symbol.比如函数的起始地址<]*/
+/*} Dl_info;*/
+
+
+struct ucontext_ce123 {
+	unsigned long     uc_flags;
+	struct ucontext  *uc_link;
+	stack_t       uc_stack;
+	struct sigcontext uc_mcontext;
+	sigset_t      uc_sigmask;   /* mask last for extensibility */
+}ucontext_ce123_;
+
+
+struct sigframe_ce123 {
+	struct sigcontext sc;//保存一组寄存器上下文
+	unsigned long extramask[1];
+	unsigned long retcode;//保存返回地址
+	//struct aux_sigframe aux __attribute__((aligned(8)));
+}sigframe_ce123;
+
+
+void dumpstack()
+{
+
+
+	Dl_info info;
+	int status;
+
+
+	int *fp = 0, *next_fp = 0;
+	int cnt = 0;
+	int ret = 0;
+
+
+	__asm__(
+			"mov %0, fp\n"
+			: "=r"(fp)
+		   );
+
+
+
+
+	next_fp = (int *)(*(fp-3));
+	while(next_fp != 0)
+	{
+		void * pcur = (void *)*(next_fp - 1);
+
+
+		status = dladdr (pcur, &info);
+		if (status && info.dli_fname && info.dli_fname[0] != '\0')
+		{
+			printf("0x%08x 0x%08x %-20s <  %s+%p  >\r\n",pcur,info.dli_saddr,info.dli_fname,info.dli_sname,(unsigned long)((unsigned int)pcur - (unsigned int)info.dli_saddr));
+		}
+		else
+		{
+			printf ( "[%p]", (void *)*(next_fp - 1));
+		}
+
+
+		//array[cnt++] = (void *)*(next_fp - 1);
+		next_fp = (int *)(*(next_fp-3));
+		cnt++;
+	}
+
+	printf("Backstrace (%d deep)\n", cnt);
+}
+
+
+static void my_sighdlr (int sig)
+{
+	if (sig == SIGSEGV)
+	{ // Ignore SIGPIPE.
+		dumpstack();
+		exit(0);
+		/*return;*/
+	}
+}
+
+int testfun(int n)
+{
+	memset(0,0,1);
+}
+
+int main()
+{
+	signal(SIGSEGV, my_sighdlr);
+
+	printf(" \n");
+
+	testfun(1);
+
+	printf(" \n");
+	return 1;
+}
+
+
+
+=========================================================================================
+运行结果：
+/opt/app # ./test_ApproDrvMsg 
+ 
+0xb63d15b0 0xb63d15b0 /lib/libc.so.0       <  __default_sa_restorer+(nil)  >
+0x00008b10 0x00008ae8 ./test_ApproDrvMsg   <  main+0x28  >
+0xb6416fd0 0xb6416d54 /lib/libc.so.0       <  __uClibc_main+0x27c  >
+Backstrace (3 deep)
+
+根据输出堆栈的上下文，可以配置arm-hisiv300-linux-addr2line指令查看到对应代码调用。
+在编译主机上查看段错误前后调用内容，如上是：0x00008b10和0x00008ae8，
+# arm-hisiv300-linux-addr2line 0x00008b10 -e release/test_ApproDrvMsg  -f
+main
+/media/hison/home/afa/work/hi3531a/Hi3531A_SDK_V1.0.2.0/brancn_ten_avconVer1/app/test/ApproDrvMsg/ApproDrvMsg.c:12
+
+# arm-hisiv300-linux-addr2line 0x00008ae8 -e release/test_ApproDrvMsg  -f
+main
+/media/hison/home/afa/work/hi3531a/Hi3531A_SDK_V1.0.2.0/brancn_ten_avconVer1/app/test/ApproDrvMsg/ApproDrvMsg.c:113
+
+
+ 
