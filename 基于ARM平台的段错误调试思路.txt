@@ -217,7 +217,7 @@ int main()
 Backstrace (3 deep)
 
 根据输出堆栈的上下文，可以配置arm-hisiv300-linux-addr2line指令查看到对应代码调用。
-在编译主机上查看段错误前后调用内容，如上是：0x00008b10和0x00008ae8，
+在编译主机上查看段错误前后调用内容，如上是：0x00008b10和0x00008ae8，地址分别是当前执行的语句，和下一条要执行的语句。
 # arm-hisiv300-linux-addr2line 0x00008b10 -e release/test_ApproDrvMsg  -f
 main
 /media/hison/home/afa/work/hi3531a/Hi3531A_SDK_V1.0.2.0/brancn_ten_avconVer1/app/test/ApproDrvMsg/ApproDrvMsg.c:12
